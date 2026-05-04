@@ -9,8 +9,8 @@ from telegram.ext import (
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = os.environ["8693024062:AAGz1wb7vYTl_O3p1Yj12hRPGx_kJCfHvlM"]
-MANAGER_CHAT_ID = os.environ["660093642"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+MANAGER_CHAT_ID = os.environ["MANAGER_CHAT_ID"]
 
 AGENTS = {
     "agent1": {"name": "Марина Соколова",  "address": "Технопарк, корп. 2, эт. 4"},
