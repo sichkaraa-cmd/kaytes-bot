@@ -145,20 +145,32 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(product_chosen, pattern="^prod_")],
+        entry_points=[
+            CommandHandler("start", start),
+            CallbackQueryHandler(product_chosen, pattern="^prod_")
+        ],
         states={
-            STEP_QTY:     [CallbackQueryHandler(qty_chosen, pattern="^qty_")],
-            STEP_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, contact_received)],
+            STEP_QTY: [
+                CallbackQueryHandler(qty_chosen, pattern="^qty_")
+            ],
+            STEP_CONTACT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, contact_received)
+            ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("start", start),
+            CommandHandler("cancel", cancel)
+        ],
+        allow_reentry=True
     )
 
-    app.add_handler(CommandHandler("start", start))
     app.add_handler(conv)
 
     print("Бот запущен.")
     app.run_polling(drop_pending_updates=True)
 
 
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()
