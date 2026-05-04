@@ -8,8 +8,8 @@ from telegram.ext import (
 )
 
 # ─── НАСТРОЙКИ ────────────────────────────────────────────────
-BOT_TOKEN = os.getenv("BOT_TOKEN", "ВСТАВЬТЕ_ВАШ_ТОКЕН_СЮДА")
-MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", "ВСТАВЬТЕ_ВАШ_CHAT_ID_СЮДА")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8693024062:AAGz1wb7vYTl_O3p1Yj12hRPGx_kJCfHvlM")
+MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", "660093642  ")
 
 # Агенты: код → имя и адрес
 AGENTS = {
