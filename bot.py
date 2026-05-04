@@ -1,5 +1,5 @@
 import os
-import asyncio
+import logging
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -7,38 +7,30 @@ from telegram.ext import (
     MessageHandler, filters, ContextTypes, ConversationHandler
 )
 
-# ─── НАСТРОЙКИ ────────────────────────────────────────────────
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8693024062:AAGz1wb7vYTl_O3p1Yj12hRPGx_kJCfHvlM")
-MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", "660093642  ")
+logging.basicConfig(level=logging.INFO)
 
-# Агенты: код → имя и адрес
+BOT_TOKEN = os.environ["8693024062:AAGz1wb7vYTl_O3p1Yj12hRPGx_kJCfHvlM"]
+MANAGER_CHAT_ID = os.environ["660093642"]
+
 AGENTS = {
     "agent1": {"name": "Марина Соколова",  "address": "Технопарк, корп. 2, эт. 4"},
     "agent2": {"name": "Алексей Громов",   "address": "БЦ Северный, Ленинградский пр-т"},
     "agent3": {"name": "Ольга Петрова",    "address": "БЦ Москва-Сити, башня Восток"},
 }
 
-# Меню икры
 PRODUCTS = {
     "p1": {"name": "Горбуша 250г", "price": 490},
     "p2": {"name": "Кета 250г",    "price": 590},
     "p3": {"name": "Нерка 250г",   "price": 690},
 }
 
-# Шаги диалога
 STEP_QTY, STEP_CONTACT = range(2)
-# ──────────────────────────────────────────────────────────────
-
-
-def get_agent(start_param):
-    """Определяем агента по коду из ссылки."""
-    return AGENTS.get(start_param)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     agent_code = args[0] if args else None
-    agent = get_agent(agent_code)
+    agent = AGENTS.get(agent_code)
 
     context.user_data.clear()
     context.user_data["agent_code"] = agent_code
@@ -46,16 +38,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if agent:
         header = (
-            f"Привет! Заказ оформляет агент: *{agent['name']}*\n"
+            f"Привет! Заказ через агента: *{agent['name']}*\n"
             f"Адрес доставки: {agent['address']}\n\n"
         )
     else:
         header = "Привет! Оформляем заказ красной икры Кайтес.\n\n"
 
     keyboard = [
-        [InlineKeyboardButton(f"🐟 Горбуша 250г — 490₽", callback_data="prod_p1")],
-        [InlineKeyboardButton(f"🐟 Кета 250г — 590₽",    callback_data="prod_p2")],
-        [InlineKeyboardButton(f"🐟 Нерка 250г — 690₽",   callback_data="prod_p3")],
+        [InlineKeyboardButton("Горбуша 250г — 490₽", callback_data="prod_p1")],
+        [InlineKeyboardButton("Кета 250г — 590₽",    callback_data="prod_p2")],
+        [InlineKeyboardButton("Нерка 250г — 690₽",   callback_data="prod_p3")],
     ]
     await update.message.reply_text(
         header + "Выберите вид икры:",
@@ -79,7 +71,7 @@ async def product_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
          InlineKeyboardButton("10", callback_data="qty_10")],
     ]
     await query.edit_message_text(
-        f"Вы выбрали: *{product['name']}* — {product['price']}₽\n\nСколько плошек?",
+        f"Выбрано: *{product['name']}* — {product['price']}₽\n\nСколько плошек?",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
@@ -90,14 +82,14 @@ async def qty_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     qty = int(query.data.replace("qty_", ""))
-    context.user_data["qty"] = qty
     product = context.user_data["product"]
     total = product["price"] * qty
-
+    context.user_data["qty"] = qty
     context.user_data["total"] = total
+
     await query.edit_message_text(
         f"*{product['name']}* × {qty} шт = *{total}₽*\n\n"
-        f"Напишите ваше имя и телефон (или Telegram):",
+        f"Напишите ваше имя и телефон (или @username в Telegram):",
         parse_mode="Markdown"
     )
     return STEP_CONTACT
@@ -105,17 +97,14 @@ async def qty_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def contact_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact = update.message.text
-    context.user_data["contact"] = contact
-
     product = context.user_data["product"]
     qty     = context.user_data["qty"]
     total   = context.user_data["total"]
     agent   = context.user_data.get("agent")
     now     = datetime.now().strftime("%d.%m.%Y %H:%M")
 
-    # Подтверждение покупателю
     if agent:
-        delivery = f"Агент {agent['name']} свяжется с вами.\nАдрес: {agent['address']}"
+        delivery = f"Агент *{agent['name']}* свяжется с вами.\nАдрес: {agent['address']}"
     else:
         delivery = "Менеджер свяжется с вами для уточнения деталей."
 
@@ -126,11 +115,11 @@ async def contact_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-    # Уведомление менеджеру
-    agent_line = (
-        f"👤 Агент: {agent['name']}\n📍 Адрес: {agent['address']}"
-        if agent else "⚠️ Агент не определён (прямой заказ)"
-    )
+    if agent:
+        agent_line = f"👤 Агент: {agent['name']}\n📍 Адрес: {agent['address']}"
+    else:
+        agent_line = "⚠️ Прямой заказ (без агента)"
+
     manager_msg = (
         f"🆕 *НОВЫЙ ЗАКАЗ* — {now}\n\n"
         f"{agent_line}\n\n"
@@ -167,8 +156,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(conv)
 
-    print("Бот запущен. Нажмите Ctrl+C для остановки.")
-    app.run_polling()
+    print("Бот запущен.")
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
